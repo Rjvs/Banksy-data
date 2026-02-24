@@ -1,0 +1,110 @@
+{
+  "run_at": "2026-02-24T06:13:04Z",
+  "sources": {
+    "rba": {
+      "cash_rate": {
+        "ok": true,
+        "rows": 145,
+        "min_date": "1990-03-31",
+        "max_date": "2026-03-31"
+      },
+      "credit_growth": {
+        "ok": true,
+        "rows": 194
+      },
+      "credit_levels": {
+        "ok": true,
+        "rows": 198
+      },
+      "bbsw_proxy": {
+        "ok": true,
+        "rows": 228
+      },
+      "bond_yields": {
+        "ok": true,
+        "rows": 52
+      },
+      "corp_spreads": {
+        "ok": true,
+        "rows": 85
+      },
+      "indicator_rates": {
+        "ok": true,
+        "rows": 269
+      },
+      "mortgage_rates_paid": {
+        "ok": true,
+        "rows": 26
+      },
+      "deposit_rates_paid": {
+        "ok": true,
+        "rows": 26
+      }
+    },
+    "abs": {
+      "house_prices": {
+        "ok": true,
+        "rows": 89,
+        "min_date": "2003-09-30",
+        "max_date": "2025-09-30",
+        "note": "Post-Dec 2021 rows use ABS 6432.0 TVD mean/median (approximate splice)"
+      },
+      "gdp": {
+        "ok": true,
+        "rows": 265,
+        "min_date": "1959-09-30",
+        "max_date": "2025-09-30"
+      },
+      "unemployment": {
+        "ok": true,
+        "rows": 193,
+        "min_date": "1978-03-31",
+        "max_date": "2026-03-31"
+      },
+      "cpi": {
+        "ok": true,
+        "rows": 587,
+        "min_date": "1922-06-30",
+        "max_date": "2025-12-31"
+      }
+    },
+    "apra": {
+      "madis": {
+        "ok": true,
+        "total_rows": 238458,
+        "major_banks_rows": 21120,
+        "institutions": 220,
+        "min_date": "2002-06-30",
+        "max_date": "2025-12-31"
+      },
+      "qadips": {
+        "ok": true,
+        "rows": 108960,
+        "series_count": 236,
+        "min_date": "2004-06-30",
+        "max_date": "2025-09-30"
+      },
+      "qadicp": {
+        "ok": true,
+        "rows": 65488,
+        "institutions": 148,
+        "min_date": "2013-03-31",
+        "max_date": "2025-09-30"
+      },
+      "qadipexs": {
+        "ok": true,
+        "rows": 43196,
+        "min_date": "2004-03-31",
+        "max_date": "2025-09-30"
+      }
+    },
+    "quarterly_macro": {
+      "ok": true,
+      "rows": 173,
+      "columns": 22,
+      "min_date": "2004-09-30",
+      "max_date": "2026-03-31",
+      "coverage": "88.8%"
+    }
+  }
+}

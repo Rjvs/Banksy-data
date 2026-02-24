@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Banksy — Pipeline Status</title>
+  <style>
+    :root {
+      --bg:      #0d1117;
+      --bg-2:    #161b22;
+      --bg-3:    #21262d;
+      --border:  #30363d;
+      --text:    #e6edf3;
+      --text-2:  #8b949e;
+      --text-3:  #6e7681;
+      --ok:      #3fb950;
+      --ok-bg:   #0d2b17;
+      --err:     #f85149;
+      --err-bg:  #2d0f0e;
+      --warn:    #d29922;
+      --warn-bg: #2d1f00;
+      --accent:  #58a6ff;
+      --radius:  6px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.5;
+      padding: 28px 16px 56px;
+    }
+
+    .container { max-width: 1100px; margin: 0 auto; }
+
+    /* ── Header ─────────────────────────────────────────────────────── */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 16px;
+      padding-bottom: 24px;
+      margin-bottom: 4px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header-title {
+      font-size: 20px;
+      font-weight: 600;
+    }
+    .header-title .org { color: var(--text-2); font-weight: 400; }
+
+    .header-meta {
+      margin-top: 4px;
+      color: var(--text-2);
+      font-size: 12px;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      border-radius: 2em;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid;
+      white-space: nowrap;
+    }
+    .status-pill.ok    { background: var(--ok-bg);   color: var(--ok);   border-color: rgba(63,185,80,.4); }
+    .status-pill.error { background: var(--err-bg);  color: var(--err);  border-color: rgba(248,81,73,.4); }
+    .status-pill.warn  { background: var(--warn-bg); color: var(--warn); border-color: rgba(210,153,34,.4); }
+
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.3; } }
+    .dot.pulse { animation: pulse 2s ease-in-out infinite; }
+
+    /* ── Section label ───────────────────────────────────────────────── */
+    .section-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--text-2);
+      margin: 24px 0 10px;
+    }
+
+    /* ── Source group cards ──────────────────────────────────────────── */
+    .source-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .card {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .card-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--text-2);
+    }
+
+    .card-count          { font-size: 11px; color: var(--text-2); }
+    .card-count.all-ok   { color: var(--ok); }
+    .card-count.has-err  { color: var(--err); }
+    .card-count.has-warn { color: var(--warn); }
+
+    .source-list { padding: 2px 0; }
+
+    .source-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 14px;
+    }
+    .source-row + .source-row { border-top: 1px solid var(--border); }
+
+    .s-icon { flex-shrink: 0; font-size: 12px; font-style: normal; }
+    .s-icon.ok      { color: var(--ok); }
+    .s-icon.err     { color: var(--err); }
+    .s-icon.pending { color: var(--text-3); }
+
+    .s-name {
+      flex: 1;
+      font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace;
+      font-size: 12px;
+    }
+    .s-name.pending { color: var(--text-2); }
+
+    .s-rows {
+      font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace;
+      font-size: 11px;
+      color: var(--text-3);
+      white-space: nowrap;
+    }
+
+    /* ── Coverage bar ────────────────────────────────────────────────── */
+    .coverage-card {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 10px;
+    }
+
+    .coverage-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .coverage-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--text-2);
+      margin-bottom: 4px;
+    }
+
+    .coverage-pct {
+      font-size: 36px;
+      font-weight: 700;
+      line-height: 1;
+      color: var(--accent);
+    }
+
+    .coverage-detail {
+      font-size: 12px;
+      color: var(--text-2);
+      text-align: right;
+    }
+
+    .coverage-file {
+      font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace;
+      font-size: 11px;
+      color: var(--text-3);
+      margin-top: 4px;
+    }
+
+    .progress {
+      background: var(--bg-3);
+      border-radius: 4px;
+      height: 8px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      border-radius: 4px;
+      background: linear-gradient(90deg, var(--accent), var(--ok));
+      transition: width .6s ease;
+    }
+
+    /* ── Freshness table ─────────────────────────────────────────────── */
+    .table-card {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow-x: auto;
+      margin-bottom: 10px;
+    }
+
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+
+    thead th {
+      padding: 8px 12px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--text-2);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    tbody td {
+      padding: 6px 12px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: var(--bg-3); }
+
+    .t-mono { font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace; }
+    .t-grp  { color: var(--text-3); }
+    .t-ok   { color: var(--ok); }
+    .t-err  { color: var(--err); }
+
+    /* ── Notes ───────────────────────────────────────────────────────── */
+    .note {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+      padding: 10px 14px;
+      background: var(--warn-bg);
+      border: 1px solid rgba(210,153,34,.35);
+      border-radius: var(--radius);
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+    .note-icon   { flex-shrink: 0; color: var(--warn); margin-top: 1px; }
+    .note-src    { font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace; color: var(--warn); }
+    .note-text   { color: var(--text-2); }
+
+    /* ── Planned sources ─────────────────────────────────────────────── */
+    .planned-group { margin-bottom: 16px; }
+    .planned-group-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .planned-list { display: flex; flex-direction: column; gap: 6px; }
+
+    .planned-item {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      padding: 10px 14px;
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--text-3);
+      border-radius: var(--radius);
+    }
+    .planned-item.p-critical { border-left-color: var(--err); }
+    .planned-item.p-high     { border-left-color: var(--warn); }
+    .planned-item.p-medium   { border-left-color: var(--accent); }
+    .planned-item.p-low      { border-left-color: var(--text-3); }
+
+    .planned-header { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 3px; }
+    .planned-name   { font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace; font-size: 12px; font-weight: 600; color: var(--text-2); }
+    .planned-desc   { font-size: 12px; color: var(--text-2); }
+    .planned-foot   { font-size: 11px; color: var(--text-3); margin-top: 4px; display: flex; gap: 12px; flex-wrap: wrap; }
+    .planned-foot strong { color: var(--text-2); font-weight: 500; }
+
+    /* small inline badges */
+    .badge {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      border: 1px solid;
+      white-space: nowrap;
+    }
+    .badge-critical { background: var(--err-bg);  color: var(--err);    border-color: rgba(248,81,73,.4); }
+    .badge-high     { background: var(--warn-bg); color: var(--warn);   border-color: rgba(210,153,34,.4); }
+    .badge-medium   { background: #0d1f3c;        color: var(--accent); border-color: rgba(88,166,255,.35); }
+    .badge-low      { background: var(--bg-3);    color: var(--text-3); border-color: var(--border); }
+    .badge-manual   { background: #1c1f2e;        color: #a18fff;       border-color: rgba(161,143,255,.35); }
+    .badge-auto     { background: #0d2b17;        color: var(--ok);     border-color: rgba(63,185,80,.3); }
+
+    /* ── Errors banner ───────────────────────────────────────────────── */
+    .errors-list { display: flex; flex-direction: column; gap: 8px; }
+
+    .error-item {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+      padding: 10px 14px;
+      background: var(--err-bg);
+      border: 1px solid rgba(248,81,73,.35);
+      border-radius: var(--radius);
+      font-size: 12px;
+    }
+    .error-icon { color: var(--err); flex-shrink: 0; }
+    .error-src  { font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace; color: var(--err); font-weight: 600; }
+    .error-msg  { color: var(--text-2); margin-top: 2px; }
+
+    /* ── Loading / error states ──────────────────────────────────────── */
+    .state-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 60vh;
+      gap: 12px;
+      color: var(--text-2);
+      text-align: center;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+
+    code {
+      font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace;
+      font-size: 11px;
+      background: var(--bg-3);
+      padding: 1px 5px;
+      border-radius: 3px;
+      color: var(--text-2);
+    }
+
+    /* ── Footer ──────────────────────────────────────────────────────── */
+    footer {
+      margin-top: 48px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      font-size: 11px;
+      color: var(--text-3);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- Loading -->
+    <div id="state-loading" class="state-screen">
+      <div class="spinner"></div>
+      <div>Loading pipeline manifest…</div>
+    </div>
+
+    <!-- Fetch error -->
+    <div id="state-error" class="state-screen" hidden>
+      <div style="font-size:28px;color:var(--err)">✗</div>
+      <div id="error-msg">Failed to load pipeline manifest.</div>
+      <div style="font-size:12px;color:var(--text-3);max-width:420px">
+        Ensure <code>pipeline_manifest.json</code> is present in the <code>docs/</code>
+        folder and is valid JSON. It is synced automatically after each pipeline run.
+      </div>
+    </div>
+
+    <!-- Dashboard (populated by JS) -->
+    <div id="dashboard" hidden></div>
+
+  </div><!-- /.container -->
+
+  <script>
+    /* ── Pipeline schema ────────────────────────────────────────────────
+       EXPECTED maps group → source names that *should* appear in the
+       manifest. Sources absent from the manifest are flagged as pending.
+       PLANNED lists data sources not yet in the pipeline at all.
+    ─────────────────────────────────────────────────────────────────── */
+    const EXPECTED = {
+      rba: [
+        'cash_rate', 'credit_growth', 'credit_levels', 'bbsw_proxy',
+        'bond_yields', 'corp_spreads', 'indicator_rates',
+        'mortgage_rates_paid', 'deposit_rates_paid',
+      ],
+      abs:  ['house_prices', 'gdp', 'unemployment', 'cpi'],
+      apra: ['madis', 'qadips', 'qadicp', 'qadipexs'],
+    };
+
+    const GROUP_META = {
+      rba:  { label: 'RBA Market Data' },
+      abs:  { label: 'ABS Macro Data' },
+      apra: { label: 'APRA Banking Data' },
+    };
+
+    // Sources not yet in the pipeline, sourced from DATA_SOURCES.md §10.
+    // Each entry has: name, label, description, required_by, priority, type, effort
+    // priority: 'critical' | 'high' | 'medium' | 'low'
+    // type: 'manual' (human curation) | 'automated' (new pipeline script/step)
+    const PLANNED_SOURCES = [
+      // ── Critical ──────────────────────────────────────────────────────
+      {
+        priority: 'critical', type: 'manual',
+        name: 'curated/cba_reported_results',
+        label: 'CBA Reported Results',
+        description:
+          'Half-yearly NIM, ROE, CTI, NPAT, CET1, and dividend data from CBA investor ' +
+          'presentations (FY2004 – present). ~23 data points, hand-entered CSV. ' +
+          'Sources: CBA IR site, SEC EDGAR 20-F filings, MacroTrends.',
+        required_by: 'Ghost comparison — actual CBA outcomes vs. player decisions',
+        effort: 'Medium (~2–3 hrs)',
+      },
+      {
+        priority: 'critical', type: 'manual',
+        name: 'curated/events',
+        label: 'Historical Event Catalogue',
+        description:
+          'Structured JSON/CSV of macro shocks, regulatory actions, and bank-specific events ' +
+          '(2004–2015 for MVP). Includes GFC timeline, RBA rate cycles, APRA macroprudential ' +
+          'interventions, Royal Commission trigger events.',
+        required_by: 'Event engine — quarterly macro shocks and regulatory triggers',
+        effort: 'Medium (~4–6 hrs)',
+      },
+      // ── High ──────────────────────────────────────────────────────────
+      {
+        priority: 'high', type: 'automated',
+        name: 'market/share_prices',
+        label: 'Big Four Share Prices',
+        description:
+          'Daily prices for CBA.AX, WBC.AX, ANZ.AX, NAB.AX via Yahoo Finance ' +
+          '(yfinance Python or tidyquant R). Back to ~1992. Use auto_adjust=False ' +
+          'to avoid dividend-adjusted price distortion.',
+        required_by: 'Share price performance metric; board and market confidence scoring',
+        effort: 'Medium — new ingest script',
+      },
+      {
+        priority: 'high', type: 'automated',
+        name: 'market/dividends',
+        label: 'Big Four Dividends',
+        description:
+          'Dividend amounts and ex-dates via Yahoo Finance. Franking percentages ' +
+          'require separate manual entry (Big Four have been ~100% franked; ' +
+          'exceptions for ANZ due to international earnings).',
+        required_by: 'Dividend policy mechanic; ghost comparison',
+        effort: 'Low — bundled with share price script',
+      },
+      // ── Medium ────────────────────────────────────────────────────────
+      {
+        priority: 'medium', type: 'automated',
+        name: 'rba/fixed_mortgage_rates',
+        label: 'Fixed Mortgage Rates (F5)',
+        description:
+          'RBA Table F5 fixed-rate series currently filtered out in ingest_rba.R. ' +
+          'Low effort — adjust the series filter to include fixed-rate rows.',
+        required_by: 'Pricing mechanic — fixed vs. variable loan product mix',
+        effort: 'Low — adjust filter in ingest_rba.R',
+      },
+      {
+        priority: 'medium', type: 'automated',
+        name: 'rba/exchange_rates',
+        label: 'AUD/USD Exchange Rate (F11)',
+        description:
+          'RBA Table F11 exchange rates. Relevant for offshore wholesale funding costs ' +
+          '(USD/EUR bond issuance and cross-currency hedging costs).',
+        required_by: 'Funding cost model — wholesale issuance hedging',
+        effort: 'Low — new readrba call in ingest_rba.R',
+      },
+      {
+        priority: 'medium', type: 'automated',
+        name: 'rba/household_balance_sheets',
+        label: 'Household Balance Sheets (E1)',
+        description:
+          'RBA Table E1. Household debt-to-income and gearing ratios. ' +
+          'Context for credit risk assessment and serviceability modelling.',
+        required_by: 'Credit risk model — household leverage and serviceability',
+        effort: 'Low — new readrba call in ingest_rba.R',
+      },
+      {
+        priority: 'medium', type: 'automated',
+        name: 'abs/wage_price_index',
+        label: 'Wage Price Index (6345.0)',
+        description:
+          'ABS Cat 6345.0, quarterly seasonally adjusted. Staff costs are ~55% of ' +
+          'bank opex; wage growth drives the operating cost model. Confirmed ' +
+          'available via readabs.',
+        required_by: 'Operating cost model — staff cost escalation',
+        effort: 'Low — new readabs call in ingest_abs.R',
+      },
+      {
+        priority: 'medium', type: 'automated',
+        name: 'market/asx_financials_index',
+        label: 'S&P/ASX 200 Financials Index',
+        description:
+          'Yahoo Finance ticker ^AXFJ. Sector benchmark for relative share price ' +
+          'performance assessment.',
+        required_by: 'Share price scoring — relative sector performance',
+        effort: 'Low — bundled with share price script',
+      },
+    ];
+
+    /* ── Helpers ──────────────────────────────────────────────────────── */
+    const fmtDate = iso => {
+      if (!iso) return '—';
+      return new Date(iso).toLocaleDateString('en-AU', {
+        year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC',
+      });
+    };
+
+    const fmtDateTime = iso => {
+      if (!iso) return 'Unknown';
+      return new Date(iso).toLocaleString('en-AU', {
+        year: 'numeric', month: 'short', day: 'numeric',
+        hour: '2-digit', minute: '2-digit', timeZone: 'UTC',
+      }) + ' UTC';
+    };
+
+    const fmtNum = n => (n != null ? Number(n).toLocaleString() : null);
+
+    // Extract the most meaningful row count from a source object
+    const rowCount = src =>
+      src?.major_banks_rows ?? src?.total_rows ?? src?.rows ?? null;
+
+    const srcStatus = src => {
+      if (!src)              return 'pending';
+      if (src.ok === true)   return 'ok';
+      if (src.ok === false)  return 'err';
+      return 'pending';
+    };
+
+    /* ── Render helpers ───────────────────────────────────────────────── */
+    const h = s => s; // no escaping needed — all strings are static/numeric
+
+    function sourceRow(name, src, pending = false) {
+      const st   = pending ? 'pending' : srcStatus(src);
+      const icon = st === 'ok' ? '✓' : st === 'err' ? '✗' : '○';
+      const n    = !pending ? rowCount(src) : null;
+      const rows = n != null ? fmtNum(n) + '\u202frows' : '';
+      return `
+        <div class="source-row">
+          <i class="s-icon ${st}">${icon}</i>
+          <span class="s-name${pending ? ' pending' : ''}">${name}</span>
+          <span class="s-rows">${rows}</span>
+        </div>`;
+    }
+
+    function groupCard(key, sources) {
+      const meta     = GROUP_META[key];
+      const expected = EXPECTED[key] ?? [];
+      const present  = sources[key] ?? {};
+      const missing  = expected.filter(n => !(n in present));
+      const vals     = Object.values(present);
+      const okCount  = vals.filter(s => s.ok).length;
+      const errCount = vals.filter(s => s.ok === false).length;
+      const total    = vals.length;
+      const allOk    = errCount === 0 && missing.length === 0 && okCount === total;
+
+      const countClass = allOk ? 'all-ok' : errCount ? 'has-err' : 'has-warn';
+      const countText  = allOk
+        ? `${total}/${expected.length} ✓`
+        : errCount
+          ? `${errCount} error${errCount > 1 ? 's' : ''}`
+          : `${missing.length} pending`;
+
+      const rows = [
+        ...Object.entries(present).map(([n, s]) => sourceRow(n, s, false)),
+        ...missing.map(n => sourceRow(n, null, true)),
+      ].join('');
+
+      return `
+        <div class="card">
+          <div class="card-head">
+            <span class="card-label">${meta.label}</span>
+            <span class="card-count ${countClass}">${countText}</span>
+          </div>
+          <div class="source-list">${rows}</div>
+        </div>`;
+    }
+
+    function coverageCard(macro) {
+      if (!macro) return '';
+      const pct  = parseFloat(macro.coverage) || 0;
+      return `
+        <div class="coverage-card">
+          <div class="coverage-top">
+            <div>
+              <div class="coverage-label">Quarterly Macro Join Coverage</div>
+              <div class="coverage-pct">${macro.coverage ?? '—'}</div>
+            </div>
+            <div class="coverage-detail">
+              ${fmtNum(macro.rows)} quarters &nbsp;·&nbsp; ${macro.columns} columns
+              <br>${fmtDate(macro.min_date)} – ${fmtDate(macro.max_date)}
+              <div class="coverage-file">quarterly_macro.parquet</div>
+            </div>
+          </div>
+          <div class="progress">
+            <div class="progress-fill" style="width:${pct}%"></div>
+          </div>
+        </div>`;
+    }
+
+    // Flatten nested source groups into a flat array for the table
+    function flatRows(sources) {
+      const out = [];
+      for (const [group, data] of Object.entries(sources)) {
+        if (!data || typeof data !== 'object') continue;
+        if ('ok' in data) {
+          out.push({ group, name: group, ...data });
+        } else {
+          for (const [name, src] of Object.entries(data)) {
+            if (src && typeof src === 'object') out.push({ group, name, ...src });
+          }
+        }
+      }
+      return out;
+    }
+
+    function freshnessTable(sources) {
+      const rows = flatRows(sources)
+        .filter(s => s.min_date || s.max_date)
+        .map(s => {
+          const n = rowCount(s);
+          return `
+            <tr>
+              <td class="t-mono"><span class="t-grp">${s.group}/</span>${s.name}</td>
+              <td class="t-mono">${fmtDate(s.min_date)}</td>
+              <td class="t-mono">${fmtDate(s.max_date)}</td>
+              <td class="t-mono">${n != null ? fmtNum(n) : '—'}</td>
+              <td class="${s.ok ? 't-ok' : 't-err'}">${s.ok ? '✓' : '✗'}</td>
+            </tr>`;
+        }).join('');
+
+      return `
+        <div class="table-card">
+          <table>
+            <thead>
+              <tr>
+                <th>Source</th>
+                <th>Earliest</th>
+                <th>Latest</th>
+                <th>Rows</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>`;
+    }
+
+    function notesSection(sources) {
+      const notes = flatRows(sources)
+        .filter(s => s.note)
+        .map(s => `
+          <div class="note">
+            <span class="note-icon">⚠</span>
+            <div>
+              <span class="note-src">${s.group}/${s.name}: </span>
+              <span class="note-text">${s.note}</span>
+            </div>
+          </div>`).join('');
+      return notes;
+    }
+
+    function errorsSection(sources) {
+      const errs = flatRows(sources)
+        .filter(s => s.ok === false)
+        .map(s => `
+          <div class="error-item">
+            <span class="error-icon">✗</span>
+            <div>
+              <div class="error-src">${s.group}/${s.name}</div>
+              <div class="error-msg">${s.error ?? 'Source reported ok: false — check pipeline logs.'}</div>
+            </div>
+          </div>`).join('');
+
+      // Also flag expected sources entirely missing from the manifest
+      const missing = Object.entries(EXPECTED).flatMap(([grp, names]) =>
+        names
+          .filter(n => !sources[grp]?.[n])
+          .map(n => `
+            <div class="error-item">
+              <span class="error-icon">○</span>
+              <div>
+                <div class="error-src">${grp}/${n}</div>
+                <div class="error-msg">Expected source not found in manifest — not yet implemented or pipeline step missing.</div>
+              </div>
+            </div>`)
+      ).join('');
+
+      return errs + missing;
+    }
+
+    const PRIORITY_ORDER = ['critical', 'high', 'medium', 'low'];
+    const PRIORITY_LABEL = { critical: 'Critical', high: 'High', medium: 'Medium', low: 'Low' };
+
+    function plannedSection() {
+      if (!PLANNED_SOURCES.length) return '';
+
+      // Group by priority, preserving order
+      const groups = {};
+      for (const p of PLANNED_SOURCES) {
+        (groups[p.priority] ??= []).push(p);
+      }
+
+      return PRIORITY_ORDER
+        .filter(pr => groups[pr])
+        .map(pr => {
+          const items = groups[pr].map(p => {
+            const typeBadge = p.type === 'manual'
+              ? '<span class="badge badge-manual">manual curation</span>'
+              : '<span class="badge badge-auto">automated</span>';
+            return `
+              <div class="planned-item p-${p.priority}">
+                <div style="flex:1;min-width:0">
+                  <div class="planned-header">
+                    <span class="planned-name">${p.name}</span>
+                    ${typeBadge}
+                  </div>
+                  <div class="planned-desc">${p.description}</div>
+                  <div class="planned-foot">
+                    <span><strong>Required for:</strong> ${p.required_by}</span>
+                    <span><strong>Effort:</strong> ${p.effort}</span>
+                  </div>
+                </div>
+              </div>`;
+          }).join('');
+
+          return `
+            <div class="planned-group">
+              <div class="planned-group-label">
+                <span class="badge badge-${pr}">${PRIORITY_LABEL[pr]}</span>
+                <span style="color:var(--text-3)">${groups[pr].length} source${groups[pr].length > 1 ? 's' : ''}</span>
+              </div>
+              <div class="planned-list">${items}</div>
+            </div>`;
+        }).join('');
+    }
+
+    /* ── Overall health ───────────────────────────────────────────────── */
+    function health(sources) {
+      const all     = flatRows(sources);
+      const errored = all.filter(s => s.ok === false);
+      const missing = Object.entries(EXPECTED).flatMap(([grp, names]) =>
+        names.filter(n => !sources[grp]?.[n])
+      );
+      return { errored, missing };
+    }
+
+    /* ── Main ─────────────────────────────────────────────────────────── */
+    async function init() {
+      const loading = document.getElementById('state-loading');
+      const errEl   = document.getElementById('state-error');
+      const dashEl  = document.getElementById('dashboard');
+
+      try {
+        const res = await fetch('./pipeline_manifest.json');
+        if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+        const manifest = await res.json();
+        loading.hidden = true;
+
+        const { run_at, sources } = manifest;
+        const { errored, missing } = health(sources);
+        const hasErrors  = errored.length > 0;
+        const hasMissing = missing.length > 0;
+        const allOk      = !hasErrors && !hasMissing;
+
+        const pillClass = hasErrors ? 'error' : hasMissing ? 'warn' : 'ok';
+        const pillText  = hasErrors
+          ? `${errored.length} source${errored.length > 1 ? 's' : ''} failing`
+          : hasMissing
+            ? `${missing.length} source${missing.length > 1 ? 's' : ''} not yet implemented`
+            : 'All sources healthy';
+
+        const groups   = Object.keys(GROUP_META).map(k => groupCard(k, sources)).join('');
+        const notes    = notesSection(sources);
+        const errors   = errorsSection(sources);
+        const planned  = plannedSection();
+
+        dashEl.innerHTML = `
+          <header class="header">
+            <div>
+              <div class="header-title">
+                <span class="org">Banksy /</span> Pipeline Status
+              </div>
+              <div class="header-meta">Last run: ${fmtDateTime(run_at)}</div>
+            </div>
+            <div class="status-pill ${pillClass}">
+              <div class="dot${allOk ? ' pulse' : ''}"></div>
+              ${pillText}
+            </div>
+          </header>
+
+          <div class="section-label">Data Sources</div>
+          <div class="source-grid">${groups}</div>
+
+          ${coverageCard(sources.quarterly_macro)}
+
+          <div class="section-label">Data Freshness</div>
+          ${freshnessTable(sources)}
+
+          ${notes ? `<div class="section-label">Notes</div>${notes}` : ''}
+
+          ${errors ? `<div class="section-label">Issues</div><div class="errors-list">${errors}</div>` : ''}
+
+          <div class="section-label">Planned — Not Yet Implemented</div>
+          ${planned}
+
+          <footer>
+            Banksy &nbsp;·&nbsp; Australian Bank Management Simulation
+            &nbsp;·&nbsp; Data: RBA, ABS, APRA
+            &nbsp;·&nbsp; Dashboard syncs automatically after each pipeline run
+          </footer>`;
+
+        dashEl.hidden = false;
+
+      } catch (err) {
+        loading.hidden = true;
+        document.getElementById('error-msg').textContent =
+          `Could not load pipeline_manifest.json: ${err.message}`;
+        errEl.hidden = false;
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
