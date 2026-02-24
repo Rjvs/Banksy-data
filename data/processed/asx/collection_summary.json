@@ -1,0 +1,62 @@
+{
+  "last_updated": "2026-02-24T08:09:20.691083+00:00",
+  "total_documents_downloaded": 0,
+  "tickers": {
+    "CBA": {
+      "name": "Commonwealth Bank of Australia",
+      "last_fetched": "2026-02-24T08:08:59.405661+00:00",
+      "total_fetched": 0,
+      "relevant": 0,
+      "downloaded": 0
+    },
+    "WBC": {
+      "name": "Westpac Banking Corporation",
+      "last_fetched": "2026-02-24T08:09:02.083497+00:00",
+      "total_fetched": 0,
+      "relevant": 0,
+      "downloaded": 0
+    },
+    "ANZ": {
+      "name": "ANZ Group Holdings",
+      "last_fetched": "2026-02-24T08:09:04.761362+00:00",
+      "total_fetched": 0,
+      "relevant": 0,
+      "downloaded": 0
+    },
+    "NAB": {
+      "name": "National Australia Bank",
+      "last_fetched": "2026-02-24T08:09:07.442040+00:00",
+      "total_fetched": 0,
+      "relevant": 0,
+      "downloaded": 0
+    },
+    "BEN": {
+      "name": "Bendigo and Adelaide Bank",
+      "last_fetched": "2026-02-24T08:09:10.116685+00:00",
+      "total_fetched": 0,
+      "relevant": 0,
+      "downloaded": 0
+    },
+    "BOQ": {
+      "name": "Bank of Queensland",
+      "last_fetched": "2026-02-24T08:09:12.802417+00:00",
+      "total_fetched": 0,
+      "relevant": 0,
+      "downloaded": 0
+    },
+    "SUN": {
+      "name": "Suncorp Group",
+      "last_fetched": "2026-02-24T08:09:15.478180+00:00",
+      "total_fetched": 0,
+      "relevant": 0,
+      "downloaded": 0
+    },
+    "MQG": {
+      "name": "Macquarie Group",
+      "last_fetched": "2026-02-24T08:09:18.190011+00:00",
+      "total_fetched": 0,
+      "relevant": 0,
+      "downloaded": 0
+    }
+  }
+}
